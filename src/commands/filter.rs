@@ -196,7 +196,7 @@ pub fn filter_frames_with_cache(
 
     // Parse data pattern once
     let data_pattern = filters.data_pattern.as_ref().map(|p| parse_data_pattern(p));
-    let has_data_pattern = data_pattern.as_ref().map_or(false, |p| !p.is_empty());
+    let has_data_pattern = data_pattern.as_ref().is_some_and(|p| !p.is_empty());
 
     // Lowercase message/signal filters for case-insensitive matching
     let message_filters: Vec<String> = filters.messages.iter().map(|s| s.to_lowercase()).collect();
