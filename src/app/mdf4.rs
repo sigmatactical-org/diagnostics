@@ -6,7 +6,7 @@ use super::helpers::{
 };
 use crate::dto::{CanFrameDto, FrameTableRow};
 use crate::services::{
-    decode_single_frame, filter_frames, get_dbc_path, load_dbc, load_mdf4, export_logs,
+    decode_single_frame, export_logs, filter_frames, get_dbc_path, load_dbc, load_mdf4,
     FilterConfig, MatchStatus,
 };
 use crate::state::AppState;
@@ -181,7 +181,9 @@ impl Mdf4Controller {
             let result = filter_frames(all, filters, &self.state);
             *self.filtered_frames.lock() = result.frames.clone();
             self.update_frame_table(&result.frames);
-            ui.set_mdf4_frame_count(format!("{} / {} frames", result.filtered_count, result.total_count).into());
+            ui.set_mdf4_frame_count(
+                format!("{} / {} frames", result.filtered_count, result.total_count).into(),
+            );
             ui.set_mdf4_selected_frame(-1);
             ui.set_mdf4_signals(ModelRc::new(slint::VecModel::default()));
         });

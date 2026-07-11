@@ -47,19 +47,58 @@ impl DbcController {
         }
 
         let this = self.clone();
-        ui.on_new_dbc({ let t = this.clone(); move || t.new_dbc() });
-        ui.on_dbc_open({ let t = this.clone(); move || t.open_dbc() });
-        ui.on_save_dbc({ let t = this.clone(); move || t.save_dbc() });
-        ui.on_save_dbc_as({ let t = this.clone(); move || t.save_dbc_as() });
-        ui.on_add_message({ let t = this.clone(); move || t.add_message() });
-        ui.on_delete_message({ let t = this.clone(); move || t.delete_message() });
-        ui.on_add_signal({ let t = this.clone(); move || t.add_signal() });
-        ui.on_delete_signal({ let t = this.clone(); move || t.delete_signal() });
-        ui.on_add_node({ let t = this.clone(); move || t.add_node() });
-        ui.on_delete_node({ let t = this.clone(); move || t.delete_node() });
-        ui.on_message_selected({ let t = this.clone(); move |i| t.select_message(i) });
-        ui.on_signal_selected({ let t = this.clone(); move |i| t.select_signal(i) });
-        ui.on_node_selected({ let t = this.clone(); move |i| t.select_node(i) });
+        ui.on_new_dbc({
+            let t = this.clone();
+            move || t.new_dbc()
+        });
+        ui.on_dbc_open({
+            let t = this.clone();
+            move || t.open_dbc()
+        });
+        ui.on_save_dbc({
+            let t = this.clone();
+            move || t.save_dbc()
+        });
+        ui.on_save_dbc_as({
+            let t = this.clone();
+            move || t.save_dbc_as()
+        });
+        ui.on_add_message({
+            let t = this.clone();
+            move || t.add_message()
+        });
+        ui.on_delete_message({
+            let t = this.clone();
+            move || t.delete_message()
+        });
+        ui.on_add_signal({
+            let t = this.clone();
+            move || t.add_signal()
+        });
+        ui.on_delete_signal({
+            let t = this.clone();
+            move || t.delete_signal()
+        });
+        ui.on_add_node({
+            let t = this.clone();
+            move || t.add_node()
+        });
+        ui.on_delete_node({
+            let t = this.clone();
+            move || t.delete_node()
+        });
+        ui.on_message_selected({
+            let t = this.clone();
+            move |i| t.select_message(i)
+        });
+        ui.on_signal_selected({
+            let t = this.clone();
+            move |i| t.select_signal(i)
+        });
+        ui.on_node_selected({
+            let t = this.clone();
+            move |i| t.select_node(i)
+        });
     }
 
     fn with_ui<F: FnOnce(&SigmaCanViewer)>(&self, f: F) {

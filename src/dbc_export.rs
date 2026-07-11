@@ -1,15 +1,15 @@
 //! Serialize [`DbcInfo`] to DBC file format (ported from the legacy TS editor).
 
-use crate::dto::{
-    AttributeTargetInfo,
-    AttributeValueInfo, AttributeValueType, DbcInfo,
-};
+use crate::dto::{AttributeTargetInfo, AttributeValueInfo, AttributeValueType, DbcInfo};
 
 /// Export a [`DbcInfo`] to DBC file content.
 pub fn export_dbc_info_to_string(dbc: &DbcInfo) -> String {
     let mut lines = Vec::new();
 
-    lines.push(format!("VERSION \"{}\"", dbc.version.as_deref().unwrap_or("")));
+    lines.push(format!(
+        "VERSION \"{}\"",
+        dbc.version.as_deref().unwrap_or("")
+    ));
     lines.push(String::new());
     lines.push("NS_ :".to_string());
     lines.push(String::new());
@@ -17,10 +17,7 @@ pub fn export_dbc_info_to_string(dbc: &DbcInfo) -> String {
     if let Some(ref bt) = dbc.bit_timing {
         if bt.baudrate > 0 {
             if bt.btr1 > 0 || bt.btr2 > 0 {
-                lines.push(format!(
-                    "BS_: {} : {},{}",
-                    bt.baudrate, bt.btr1, bt.btr2
-                ));
+                lines.push(format!("BS_: {} : {},{}", bt.baudrate, bt.btr1, bt.btr2));
             } else {
                 lines.push(format!("BS_: {}", bt.baudrate));
             }
@@ -37,7 +34,11 @@ pub fn export_dbc_info_to_string(dbc: &DbcInfo) -> String {
     } else {
         lines.push(format!(
             "BU_: {}",
-            dbc.nodes.iter().map(|n| n.name.as_str()).collect::<Vec<_>>().join(" ")
+            dbc.nodes
+                .iter()
+                .map(|n| n.name.as_str())
+                .collect::<Vec<_>>()
+                .join(" ")
         ));
     }
     lines.push(String::new());
@@ -54,7 +55,11 @@ pub fn export_dbc_info_to_string(dbc: &DbcInfo) -> String {
         ));
 
         for sig in &msg.signals {
-            let byte_order = if sig.byte_order == "little_endian" { 1 } else { 0 };
+            let byte_order = if sig.byte_order == "little_endian" {
+                1
+            } else {
+                0
+            };
             let value_type = if sig.is_signed { '-' } else { '+' };
             let mux_indicator = if sig.is_multiplexer {
                 " M".to_string()
@@ -137,10 +142,7 @@ pub fn export_dbc_info_to_string(dbc: &DbcInfo) -> String {
     for val in &dbc.attribute_values {
         let target_str = attribute_target_string(&val.target);
         let value_str = attribute_value_string(&val.value);
-        lines.push(format!(
-            "BA_ \"{}\" {target_str}{value_str} ;",
-            val.name
-        ));
+        lines.push(format!("BA_ \"{}\" {target_str}{value_str} ;", val.name));
     }
     for vd in &dbc.value_descriptions {
         if vd.descriptions.is_empty() {

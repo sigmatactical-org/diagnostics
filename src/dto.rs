@@ -523,4 +523,3 @@ pub struct DbcNodeRow {
     pub name: String,
     pub comment: String,
 }
-

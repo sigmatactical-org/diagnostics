@@ -3,9 +3,7 @@
 use super::helpers::{pick_save_file, set_status, vec_model};
 use crate::services::{is_capture_running, list_can_interfaces, start_capture, stop_capture};
 use crate::state::AppState;
-use crate::{
-    LiveErrorRow, LiveFrameRow, LiveMessageRow, LiveSignalRow, SigmaCanViewer,
-};
+use crate::{LiveErrorRow, LiveFrameRow, LiveMessageRow, LiveSignalRow, SigmaCanViewer};
 use parking_lot::Mutex;
 use slint::{Model, SharedString, Timer, TimerMode, Weak};
 use std::rc::Rc;

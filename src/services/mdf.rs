@@ -9,8 +9,7 @@ pub fn load_mdf4(
     path: &str,
     state: &AppState,
 ) -> Result<(Vec<CanFrameDto>, Vec<DecodedSignalDto>), String> {
-    let mdf =
-        mdf4_rs::MDF::from_file(path).map_err(|e| format!("Failed to open MDF4: {e:?}"))?;
+    let mdf = mdf4_rs::MDF::from_file(path).map_err(|e| format!("Failed to open MDF4: {e:?}"))?;
 
     let mut frames = Vec::new();
     let mut decoded_signals = Vec::new();
@@ -164,8 +163,7 @@ pub fn export_logs(path: &str, frames: &[CanFrameDto]) -> Result<usize, String> 
         return Err("No frames to export".to_string());
     }
 
-    let mut logger =
-        RawCanLogger::new().map_err(|e| format!("Failed to create logger: {e:?}"))?;
+    let mut logger = RawCanLogger::new().map_err(|e| format!("Failed to create logger: {e:?}"))?;
 
     for frame in frames {
         let timestamp_us = (frame.timestamp * 1_000_000.0) as u64;

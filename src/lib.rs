@@ -25,5 +25,5 @@ pub use services::filter::{
     MatchStatus, MessageCount,
 };
 
-pub use services::mdf::parse_can_dataframe;
 pub use config::SessionConfig;
+pub use services::mdf::parse_can_dataframe;

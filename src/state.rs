@@ -13,8 +13,7 @@ pub struct InitialFiles {
 
 /// Channel used to request capture stop and receive the finalize result sender.
 #[cfg(target_os = "linux")]
-pub type CaptureStopTx =
-    std::sync::mpsc::Sender<std::sync::mpsc::Sender<Result<String, String>>>;
+pub type CaptureStopTx = std::sync::mpsc::Sender<std::sync::mpsc::Sender<Result<String, String>>>;
 
 /// Global application state shared across services.
 pub struct AppState {

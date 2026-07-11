@@ -13,8 +13,7 @@ use dbc_rs::Dbc;
 
 /// Load and parse a DBC file from disk.
 pub fn load_dbc(path: &str, state: &AppState) -> Result<String, String> {
-    let content =
-        std::fs::read_to_string(path).map_err(|e| format!("Failed to read DBC: {e}"))?;
+    let content = std::fs::read_to_string(path).map_err(|e| format!("Failed to read DBC: {e}"))?;
 
     let dbc = Dbc::parse(&content).map_err(|e| format!("Failed to parse DBC: {e:?}"))?;
     let msg_count = dbc.messages().len();
