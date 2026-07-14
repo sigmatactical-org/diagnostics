@@ -1,6 +1,6 @@
 import { ListView } from "std-widgets.slint";
 import { SigmaTheme } from "theme.slint";
-import { StatusChip } from "widgets/common.slint";
+import { StatusChip, Cell, HeaderCell, TableHeader, TableRow, EmptyState } from "widgets/common.slint";
 
 export struct VitalRow {
     name: string,
@@ -23,7 +23,7 @@ component VitalCard inherits Rectangle {
         Text {
             text: root.label;
             color: SigmaTheme.text-dim;
-            font-size: 9px;
+            font-size: SigmaTheme.font-size-small;
         }
         Text {
             text: root.value;
@@ -99,34 +99,28 @@ export component DiagnosisTab inherits Rectangle {
             border-radius: 4px;
             border-width: 1px;
             border-color: SigmaTheme.border;
-            ListView {
-                for row in root.vitals: Rectangle {
-                    height: SigmaTheme.row-height;
-                    HorizontalLayout {
-                        padding-left: 8px;
-                        padding-right: 8px;
-                        spacing: 8px;
-                        Text {
-                            text: row.name;
-                            horizontal-stretch: 2;
-                            color: SigmaTheme.text;
-                            font-size: SigmaTheme.font-size-small;
-                            vertical-alignment: center;
-                        }
-                        Text {
-                            text: row.value;
-                            width: 100px;
-                            color: SigmaTheme.accent;
-                            font-size: SigmaTheme.font-size-small;
-                            vertical-alignment: center;
-                        }
-                        Text {
-                            text: row.unit;
-                            width: 60px;
-                            color: SigmaTheme.text-dim;
-                            font-size: SigmaTheme.font-size-small;
-                            vertical-alignment: center;
-                        }
+
+            if root.vitals.length == 0: EmptyState {
+                message: root.connected ? "Waiting for telemetry…" : "Not connected";
+                hint: root.connected
+                    ? "Decoded signals appear here as frames arrive."
+                    : "Connect to the vehicle from the Connect tab to see live vitals.";
+            }
+
+            if root.vitals.length > 0: VerticalLayout {
+                padding: 4px;
+                spacing: 4px;
+                TableHeader {
+                    HeaderCell { text: "Signal"; horizontal-stretch: 2; }
+                    HeaderCell { text: "Value"; width: 100px; }
+                    HeaderCell { text: "Unit"; width: 60px; }
+                }
+                ListView {
+                    for row in root.vitals: TableRow {
+                        hoverable: false;
+                        Cell { text: row.name; horizontal-stretch: 2; }
+                        Cell { text: row.value; width: 100px; color: SigmaTheme.accent; }
+                        Cell { text: row.unit; width: 60px; color: SigmaTheme.text-dim; }
                     }
                 }
             }

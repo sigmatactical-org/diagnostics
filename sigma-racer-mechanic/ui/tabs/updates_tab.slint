@@ -19,6 +19,7 @@ export component UpdatesTab inherits Rectangle {
     VerticalLayout {
         padding: 12px;
         spacing: 10px;
+        alignment: start;
         Text {
             text: "Software updates";
             color: SigmaTheme.text;
@@ -39,6 +40,7 @@ export component UpdatesTab inherits Rectangle {
                 value: root.update-available ? root.available-version : "—";
                 value-color: root.update-available ? SigmaTheme.accent-green : SigmaTheme.text-dim;
             }
+            Rectangle { horizontal-stretch: 1; }
         }
         HorizontalLayout {
             spacing: 8px;
@@ -52,6 +54,7 @@ export component UpdatesTab inherits Rectangle {
                 enabled: root.update-available && root.bundle-url != "" && !root.busy;
                 clicked => { root.download-bundle(); }
             }
+            Rectangle { horizontal-stretch: 1; }
         }
         Text {
             text: root.notes;

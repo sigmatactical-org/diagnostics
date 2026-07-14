@@ -3,8 +3,8 @@
 use crate::state::AppState;
 use crate::{
     DbcAttributeRow, DbcCatalogRow, DbcMessageRow, DbcNodeRow, DbcSignalRow, DbcValueDescRow,
-    DepRow, FrameRow, LiveErrorRow, LiveFrameRow, LiveMessageRow, LiveSignalRow,
-    SigmaRacerMechanic, SignalRow,
+    FrameRow, LiveErrorRow, LiveFrameRow, LiveMessageRow, LiveSignalRow, SigmaRacerMechanic,
+    SignalRow,
 };
 use can_viewer::dto::CanFrameDto;
 use can_viewer::services::{
@@ -178,48 +178,19 @@ impl AnalysisController {
         }
     }
 
-    /// Fill the About tab (versions, dependency list).
+    /// Fill the About tab from build-time generated metadata.
     pub fn populate_about(&self) {
-        self.with_ui(|ui| {
-            ui.set_about_copyright(
-                "Copyright © 2026 Sigma Tactical Group / diagnostics contributors.".into(),
-            );
-            ui.set_about_license_notice(
-                "sigma-racer-mechanic is licensed under MIT OR Apache-2.0. See LICENSING.md."
-                    .into(),
-            );
-            ui.set_about_credits(
-                "Builds on sigma-diagnostics and can-viewer analysis services.".into(),
-            );
-            ui.set_about_transitive_summary(
-                "See the can-viewer About tab for the full third-party crate list.".into(),
-            );
-            ui.set_about_notice_lines(ModelRc::new(VecModel::from(vec![SharedString::from(
-                "Third-party notices: run can-viewer About for the full list.",
-            )])));
-            ui.set_about_direct_deps(ModelRc::new(VecModel::from(vec![
-                DepRow {
-                    name: "sigma-diagnostics".into(),
-                    version: env!("CARGO_PKG_VERSION").into(),
-                    license: "MIT OR Apache-2.0".into(),
-                },
-                DepRow {
-                    name: "can-viewer".into(),
-                    version: env!("CARGO_PKG_VERSION").into(),
-                    license: "MIT OR Apache-2.0".into(),
-                },
-                DepRow {
-                    name: "slint".into(),
-                    version: "1.13.1".into(),
-                    license: "GPL-3.0-only OR Slint royalty-free".into(),
-                },
-            ])));
-        });
+        self.with_ui(crate::about::populate);
     }
 
     /// Load files passed on the command line, if any.
     pub fn load_initial(&self) {
         self.refresh_live_interfaces();
+        if let Some(path) = self.state.analysis.initial_files.lock().dbc_path.clone() {
+            if let Err(e) = load_dbc(&path, &self.state.analysis) {
+                log::warn!("Startup DBC load failed ({path}): {e}");
+            }
+        }
         self.refresh_dbc_status();
         self.refresh_dbc_ui();
         if let Some(path) = self.state.analysis.initial_files.lock().mdf4_path.clone() {
@@ -365,7 +336,6 @@ impl AnalysisController {
                     .map(|s| SharedString::from(s.as_str()))
                     .collect::<Vec<_>>(),
             )));
-            ui.set_live_linux_only(!cfg!(target_os = "linux"));
         });
     }
 

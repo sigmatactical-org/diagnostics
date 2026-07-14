@@ -15,6 +15,7 @@ export component LogsTab inherits Rectangle {
     VerticalLayout {
         padding: 12px;
         spacing: 10px;
+        alignment: start;
         Text {
             text: "Logs & sessions";
             color: SigmaTheme.text;
@@ -42,6 +43,11 @@ export component LogsTab inherits Rectangle {
                 label: "Open local MDF4…";
                 clicked => { root.open-local-mdf4(); }
             }
+            ToolbarButton {
+                label: "Request ECU log";
+                clicked => { root.request-ecu-log(); }
+            }
+            Rectangle { horizontal-stretch: 1; }
         }
         Text {
             text: root.status-text;

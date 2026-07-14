@@ -113,7 +113,6 @@ export component SigmaRacerMechanic inherits Window {
     in-out property <bool> live-capturing: false;
     in-out property <string> live-capture-status: "Stopped";
     in-out property <string> live-stats-text: "";
-    in-out property <bool> live-linux-only: true;
     in-out property <[LiveMessageRow]> live-messages;
     in-out property <[LiveSignalRow]> live-signals;
     in-out property <[LiveFrameRow]> live-frames;
@@ -206,7 +205,7 @@ export component SigmaRacerMechanic inherits Window {
                     x: 8px;
                     y: (parent.height - self.height) / 2;
                     height: 28px;
-                    width: min(parent.width - 200px, self.preferred-width);
+                    width: min(parent.width - right-header.width - 24px, self.preferred-width);
                     spacing: 6px;
                     alignment: center;
                     AppTitle { title: "Mechanic"; }
@@ -331,6 +330,7 @@ export component SigmaRacerMechanic inherits Window {
                     replay-session => { root.replay-session(); }
                     stop-replay => { root.stop-replay(); }
                     open-local-mdf4 => { root.open-local-mdf4-from-logs(); }
+                    request-ecu-log => { root.request-ecu-log(); }
                 }
                 if root.active-tab == 6: Mdf4Tab {
                     width: 100%; height: 100%;
@@ -354,7 +354,6 @@ export component SigmaRacerMechanic inherits Window {
                     capturing <=> root.live-capturing;
                     capture-status <=> root.live-capture-status;
                     stats-text <=> root.live-stats-text;
-                    linux-only <=> root.live-linux-only;
                     messages <=> root.live-messages;
                     signals <=> root.live-signals;
                     frames <=> root.live-frames;
@@ -419,6 +418,8 @@ export component SigmaRacerMechanic inherits Window {
                 }
                 if root.active-tab == 9: AboutTab {
                     width: 100%; height: 100%;
+                    app-title: "Mechanic";
+                    app-description: "Shop tool over SocketCAN — diagnosis, maintenance, settings, and OTA updates, with embedded MDF4 / Live / DBC analysis.";
                     version-text: root.version-text;
                     copyright-text: root.about-copyright;
                     license-notice: root.about-license-notice;
@@ -426,6 +427,34 @@ export component SigmaRacerMechanic inherits Window {
                     transitive-summary: root.about-transitive-summary;
                     notice-lines: root.about-notice-lines;
                     direct-deps: root.about-direct-deps;
+                }
+            }
+
+            // Status bar: last action result / error on the left, version right.
+            status-bar := Rectangle {
+                height: 24px;
+                width: 100%;
+                background: SigmaTheme.surface-raised;
+                border-radius: 4px;
+                HorizontalLayout {
+                    padding-left: 10px;
+                    padding-right: 10px;
+                    spacing: 8px;
+                    Text {
+                        text: root.status-text;
+                        color: SigmaTheme.text-dim;
+                        font-size: SigmaTheme.font-size-small;
+                        vertical-alignment: center;
+                        overflow: elide;
+                        horizontal-stretch: 1;
+                    }
+                    Text {
+                        text: "v" + root.version-text;
+                        color: SigmaTheme.text-dim;
+                        font-size: SigmaTheme.font-size-small;
+                        vertical-alignment: center;
+                        opacity: 0.7;
+                    }
                 }
             }
         }

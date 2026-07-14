@@ -14,6 +14,7 @@ export component MaintenanceTab inherits Rectangle {
     VerticalLayout {
         padding: 12px;
         spacing: 10px;
+        alignment: start;
         Text {
             text: "Maintenance";
             color: SigmaTheme.text;
@@ -25,10 +26,13 @@ export component MaintenanceTab inherits Rectangle {
             wrap: word-wrap;
             font-size: SigmaTheme.font-size-small;
         }
-        StatusChip {
-            label: "Status";
-            value: root.status-text;
-            value-color: SigmaTheme.accent-amber;
+        HorizontalLayout {
+            alignment: start;
+            StatusChip {
+                label: "Status";
+                value: root.status-text;
+                value-color: SigmaTheme.accent-amber;
+            }
         }
         HorizontalLayout {
             spacing: 8px;
@@ -47,6 +51,7 @@ export component MaintenanceTab inherits Rectangle {
                 enabled: root.connected;
                 clicked => { root.clear-warning(); }
             }
+            Rectangle { horizontal-stretch: 1; }
         }
     }
 }

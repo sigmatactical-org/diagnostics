@@ -27,6 +27,7 @@ export component ConnectTab inherits Rectangle {
     VerticalLayout {
         padding: 12px;
         spacing: 10px;
+        alignment: start;
 
         Text {
             text: "Vehicle connection";
@@ -65,6 +66,7 @@ export component ConnectTab inherits Rectangle {
                 value: root.status-label;
                 value-color: root.connected ? SigmaTheme.accent-green : SigmaTheme.accent-amber;
             }
+            Rectangle { horizontal-stretch: 1; }
         }
 
         HorizontalLayout {
@@ -72,7 +74,7 @@ export component ConnectTab inherits Rectangle {
             VerticalLayout {
                 spacing: 4px;
                 width: 160px;
-                Text { text: "Transport"; color: SigmaTheme.text-dim; font-size: 9px; }
+                Text { text: "Transport"; color: SigmaTheme.text-dim; font-size: SigmaTheme.font-size-small; }
                 ComboBox {
                     model: root.transport-options;
                     current-index <=> root.selected-transport;
@@ -82,7 +84,7 @@ export component ConnectTab inherits Rectangle {
             if !root.wifi-mode: VerticalLayout {
                 spacing: 4px;
                 width: 220px;
-                Text { text: "Interface"; color: SigmaTheme.text-dim; font-size: 9px; }
+                Text { text: "Interface"; color: SigmaTheme.text-dim; font-size: SigmaTheme.font-size-small; }
                 if root.interfaces.length > 0: ComboBox {
                     model: root.interfaces;
                     current-index <=> root.selected-interface;
@@ -97,7 +99,7 @@ export component ConnectTab inherits Rectangle {
             if !root.wifi-mode: VerticalLayout {
                 spacing: 4px;
                 width: 140px;
-                Text { text: "Bitrate (hint)"; color: SigmaTheme.text-dim; font-size: 9px; }
+                Text { text: "Bitrate (hint)"; color: SigmaTheme.text-dim; font-size: SigmaTheme.font-size-small; }
                 LineEdit {
                     text <=> root.bitrate-text;
                     enabled: !root.connected;
@@ -107,7 +109,7 @@ export component ConnectTab inherits Rectangle {
             if root.wifi-mode: VerticalLayout {
                 spacing: 4px;
                 width: 220px;
-                Text { text: "Wingman host"; color: SigmaTheme.text-dim; font-size: 9px; }
+                Text { text: "Wingman host"; color: SigmaTheme.text-dim; font-size: SigmaTheme.font-size-small; }
                 LineEdit {
                     text <=> root.wifi-host;
                     enabled: !root.connected;
@@ -117,7 +119,7 @@ export component ConnectTab inherits Rectangle {
             if root.wifi-mode: VerticalLayout {
                 spacing: 4px;
                 width: 100px;
-                Text { text: "Port"; color: SigmaTheme.text-dim; font-size: 9px; }
+                Text { text: "Port"; color: SigmaTheme.text-dim; font-size: SigmaTheme.font-size-small; }
                 LineEdit {
                     text <=> root.wifi-port;
                     enabled: !root.connected;
@@ -126,8 +128,7 @@ export component ConnectTab inherits Rectangle {
             }
             VerticalLayout {
                 spacing: 4px;
-                alignment: start;
-                Text { text: " "; color: transparent; font-size: 9px; }
+                alignment: end;
                 CheckBox {
                     checked <=> root.use-m7-dbc;
                     enabled: !root.connected;
@@ -139,6 +140,7 @@ export component ConnectTab inherits Rectangle {
                     text: "Record session (.jsonl)";
                 }
             }
+            Rectangle { horizontal-stretch: 1; }
         }
 
         Text {
