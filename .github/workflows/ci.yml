@@ -54,6 +54,7 @@ jobs:
         with:
           workspaces: embedded/sigma-diagnostics
           add-rust-environment-hash-key: false
+          key: ${{ hashFiles('embedded/sigma-diagnostics/Cargo.lock', 'embedded/sigma-diagnostics/Cargo.toml', 'embedded/sigma-diagnostics/rust-toolchain.toml', 'embedded/sigma-diagnostics/.cargo/config.toml') }}
 
       - name: Install Slint system dependencies
         run: |
@@ -91,6 +92,7 @@ jobs:
         with:
           workspaces: embedded/sigma-diagnostics
           add-rust-environment-hash-key: false
+          key: ${{ hashFiles('embedded/sigma-diagnostics/Cargo.lock', 'embedded/sigma-diagnostics/Cargo.toml', 'embedded/sigma-diagnostics/rust-toolchain.toml', 'embedded/sigma-diagnostics/.cargo/config.toml') }}
 
       - name: Install Slint system dependencies
         run: |
@@ -128,6 +130,7 @@ jobs:
         with:
           workspaces: embedded/sigma-diagnostics
           add-rust-environment-hash-key: false
+          key: ${{ hashFiles('embedded/sigma-diagnostics/Cargo.lock', 'embedded/sigma-diagnostics/Cargo.toml', 'embedded/sigma-diagnostics/rust-toolchain.toml', 'embedded/sigma-diagnostics/.cargo/config.toml') }}
 
       - name: Install Slint system dependencies
         run: |
@@ -181,6 +184,7 @@ jobs:
         with:
           workspaces: embedded/sigma-diagnostics
           add-rust-environment-hash-key: false
+          key: ${{ hashFiles('embedded/sigma-diagnostics/Cargo.lock', 'embedded/sigma-diagnostics/Cargo.toml', 'embedded/sigma-diagnostics/rust-toolchain.toml', 'embedded/sigma-diagnostics/.cargo/config.toml') }}
 
       - name: Install Slint system dependencies
         run: |
