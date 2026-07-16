@@ -18,7 +18,7 @@ thiserror = "2.0.18"
 log = "0.4.33"
 parking_lot = "0.12.5"
 ureq = "3.3.0"
-mdf4-rs = "0.5.0"
-dbc-rs = { version = "0.9.0", features = ["std", "embedded-can"] }
+mdf4-rs = "0.5.1"
+dbc-rs = { version = "0.9.1", features = ["std", "embedded-can"] }
 embedded-can = "0.4.1"
 socketcan = "3.6.2"
