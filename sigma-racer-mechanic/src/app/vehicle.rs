@@ -1,11 +1,13 @@
 //! Vehicle Connect / Diagnosis / Maintenance / Settings / Updates / Logs.
 
 use crate::state::AppState;
-use crate::{AnomalyRow, SettingRow, SigmaRacerMechanic, VitalRow};
+use crate::{AnomalyRow, MaintenanceRow, SettingRow, SigmaRacerMechanic, VitalRow};
 use sigma_diagnostics::{
-    default_sessions_dir, fetch_channel_latest, list_can_interfaces, request_log_export,
-    LogExportRequest, MaintenanceAction, MaintenanceService, OtaConfig, SettingsService,
+    default_sessions_dir, fetch_channel_latest, fetch_latest_schedule, list_can_interfaces,
+    perform_maintenance_audit, save_maintenance_record, ItemStatus, MaintenanceAction,
+    MaintenanceAudit, MaintenanceScheduleConfig, MaintenanceService, OtaConfig, SettingsService,
     StubMaintenanceService, StubSettingsService, VehicleLinkConfig, VehicleTransport,
+    DEFAULT_WIFI_PORT,
 };
 use slint::{Model, ModelRc, VecModel, Weak};
 use std::rc::Rc;
@@ -49,6 +51,14 @@ impl VehicleController {
             let t = self.clone();
             move || t.maintenance(MaintenanceAction::ClearMaintenanceWarning)
         });
+        ui.on_maintenance_audit({
+            let t = self.clone();
+            move || t.run_maintenance_audit()
+        });
+        ui.on_save_maintenance_report({
+            let t = self.clone();
+            move || t.save_maintenance_report()
+        });
         ui.on_refresh_settings({
             let t = self.clone();
             move || t.refresh_settings()
@@ -60,14 +70,6 @@ impl VehicleController {
         ui.on_download_bundle({
             let t = self.clone();
             move || t.download_bundle()
-        });
-        ui.on_request_ecu_log({
-            let t = self.clone();
-            move || t.request_ecu_log()
-        });
-        ui.on_open_local_mdf4_from_logs({
-            let t = self.clone();
-            move || t.open_local_mdf4()
         });
         ui.on_replay_session({
             let t = self.clone();
@@ -195,9 +197,9 @@ impl VehicleController {
             ui.set_diag_status("Not connected".into());
             ui.set_status_text("Disconnected".into());
             if let Some(path) = recording {
-                ui.set_logs_status(
+                ui.set_status_text(
                     format!(
-                        "Session saved to {} — use Replay session to review.",
+                        "Session saved to {} — use Replay session on the Live tab to review.",
                         path.display()
                     )
                     .into(),
@@ -278,6 +280,143 @@ impl VehicleController {
             ui.set_maintenance_status(msg.clone().into());
             ui.set_status_text(msg.into());
         });
+    }
+
+    /// Fetch the latest schedule version at startup (step 3 of the flow), off
+    /// the UI thread so a slow/down updates service never delays launch.
+    pub fn init_maintenance(&self) {
+        let ui = self.ui.clone();
+        std::thread::spawn(move || {
+            let cfg = MaintenanceScheduleConfig::from_env();
+            let result = fetch_latest_schedule(&cfg);
+            let _ = ui.upgrade_in_event_loop(move |ui| match result {
+                Ok(schedule) => {
+                    ui.set_maintenance_schedule_version(schedule.version.clone().into());
+                    ui.set_maintenance_status(
+                        format!(
+                            "Latest schedule {} loaded. Connect over WiFi and run an audit.",
+                            schedule.version
+                        )
+                        .into(),
+                    );
+                }
+                Err(e) => {
+                    ui.set_maintenance_status(format!("Could not fetch schedule: {e}").into());
+                }
+            });
+        });
+    }
+
+    /// Run the full audit (fetch schedule → query bike → block on mismatch →
+    /// compare against the log) on a worker thread.
+    fn run_maintenance_audit(&self) {
+        let Some(ui) = self.ui.upgrade() else {
+            return;
+        };
+        // The maintenance query travels over the mTLS relay, so it needs the
+        // WiFi transport (SocketCAN has no relay).
+        let wifi_mode = ui.get_vehicle_selected_transport() == 1;
+        let host = ui.get_vehicle_wifi_host().to_string();
+        let port = ui
+            .get_vehicle_wifi_port()
+            .parse::<u16>()
+            .unwrap_or(DEFAULT_WIFI_PORT);
+        if !wifi_mode || host.is_empty() {
+            ui.set_maintenance_status(
+                "Maintenance audit needs a WiFi connection to the bike (via the relay).".into(),
+            );
+            return;
+        }
+
+        ui.set_maintenance_busy(true);
+        ui.set_maintenance_status("Fetching schedule and querying the bike…".into());
+
+        let ui_weak = self.ui.clone();
+        let state = self.state.clone();
+        std::thread::spawn(move || {
+            let cfg = MaintenanceScheduleConfig::from_env();
+            let result = perform_maintenance_audit(&cfg, &host, port);
+            let _ = ui_weak.upgrade_in_event_loop(move |ui| {
+                ui.set_maintenance_busy(false);
+                match result {
+                    Ok(audit) => {
+                        Self::apply_audit_to_ui(&ui, &audit);
+                        *state.maintenance_audit.lock() = Some(audit);
+                    }
+                    Err(e) => {
+                        ui.set_maintenance_status(format!("Audit failed: {e}").into());
+                    }
+                }
+            });
+        });
+    }
+
+    /// Reflect a completed audit into the Maintenance tab.
+    fn apply_audit_to_ui(ui: &SigmaRacerMechanic, audit: &MaintenanceAudit) {
+        ui.set_maintenance_audit_ran(true);
+        ui.set_maintenance_schedule_version(audit.schedule_version.clone().into());
+        ui.set_maintenance_bike_version(audit.bike_schedule_version.clone().into());
+        ui.set_maintenance_versions_match(audit.versions_match);
+        ui.set_maintenance_odometer(format!("{:.0} km", audit.odometer_km).into());
+        ui.set_maintenance_can_save(true);
+
+        if let Some(reason) = &audit.blocked_reason {
+            ui.set_maintenance_blocked_reason(reason.clone().into());
+            ui.set_maintenance_summary(String::new().into());
+            ui.set_maintenance_items(ModelRc::new(VecModel::from(Vec::<MaintenanceRow>::new())));
+            ui.set_maintenance_status("Bike needs a schedule update before auditing.".into());
+            return;
+        }
+
+        ui.set_maintenance_blocked_reason(String::new().into());
+        let rows: Vec<MaintenanceRow> = audit
+            .items
+            .iter()
+            .map(|i| MaintenanceRow {
+                name: i.name.clone().into(),
+                status: i.status.label().into(),
+                detail: i.detail.clone().into(),
+                severity: severity_slug(i.status).into(),
+            })
+            .collect();
+        ui.set_maintenance_items(ModelRc::new(VecModel::from(rows)));
+
+        let overdue = audit.count(ItemStatus::Overdue) + audit.count(ItemStatus::NeverDone);
+        let due_soon = audit.count(ItemStatus::DueSoon);
+        let summary = if overdue > 0 {
+            format!("{overdue} item(s) need service, {due_soon} due soon.")
+        } else if due_soon > 0 {
+            format!("No overdue items, {due_soon} due soon.")
+        } else {
+            "All items within their service intervals.".to_string()
+        };
+        ui.set_maintenance_summary(summary.into());
+        ui.set_maintenance_status(
+            format!(
+                "Audit complete — schedule {} matches the bike.",
+                audit.schedule_version
+            )
+            .into(),
+        );
+    }
+
+    /// Save the cached audit as a Markdown report (+ JSON sidecar) to records.
+    fn save_maintenance_report(&self) {
+        let audit = self.state.maintenance_audit.lock().clone();
+        let Some(audit) = audit else {
+            self.with_ui(|ui| ui.set_maintenance_status("Run an audit first.".into()));
+            return;
+        };
+        match save_maintenance_record(&audit) {
+            Ok(saved) => self.with_ui(|ui| {
+                let msg = format!("Saved report to {}", saved.markdown_path.display());
+                ui.set_maintenance_status(msg.clone().into());
+                ui.set_status_text(msg.into());
+            }),
+            Err(e) => {
+                self.with_ui(|ui| ui.set_maintenance_status(format!("Save failed: {e}").into()))
+            }
+        }
     }
 
     /// Sync the settings pane with the persisted config.
@@ -390,27 +529,6 @@ impl VehicleController {
         });
     }
 
-    fn request_ecu_log(&self) {
-        let msg = match request_log_export(&LogExportRequest::default()) {
-            Ok(s) => s,
-            Err(e) => e,
-        };
-        self.with_ui(|ui| {
-            ui.set_logs_status(msg.clone().into());
-            ui.set_status_text(msg.into());
-        });
-    }
-
-    fn open_local_mdf4(&self) {
-        self.with_ui(|ui| {
-            ui.set_active_tab(6);
-            ui.set_logs_status(
-                "Switched to Analysis → MDF4 — use header MDF4 button or Open.".into(),
-            );
-            ui.invoke_open_mdf4();
-        });
-    }
-
     fn replay_session(&self) {
         let start_dir = default_sessions_dir();
         let path = rfd::FileDialog::new()
@@ -429,15 +547,11 @@ impl VehicleController {
                     ui.set_vehicle_status_label("Replaying".into());
                     ui.set_vehicle_status_detail(path.display().to_string().into());
                     ui.set_active_tab(1);
-                    ui.set_logs_status(
-                        format!("Replaying {} — open Diagnosis tab.", path.display()).into(),
-                    );
                     ui.set_status_text(format!("Replay: {}", path.display()).into());
                 });
             }
             Err(e) => {
                 self.with_ui(|ui| {
-                    ui.set_logs_status(e.clone().into());
                     ui.set_status_text(e.into());
                 });
             }
@@ -452,7 +566,6 @@ impl VehicleController {
             ui.set_vehicle_status_label("Disconnected".into());
             ui.set_vehicle_status_detail("Replay stopped".into());
             ui.set_diag_status("Not connected".into());
-            ui.set_logs_status("Replay stopped.".into());
             ui.set_status_text("Replay stopped".into());
         });
     }
@@ -463,5 +576,16 @@ fn or_dash(s: &str) -> &str {
         "—"
     } else {
         s
+    }
+}
+
+/// Map an audit status to the severity slug the Maintenance tab colours by.
+fn severity_slug(status: ItemStatus) -> &'static str {
+    match status {
+        ItemStatus::Overdue => "overdue",
+        ItemStatus::NeverDone => "never",
+        ItemStatus::DueSoon => "due-soon",
+        ItemStatus::Ok => "ok",
+        ItemStatus::Unknown => "unknown",
     }
 }

@@ -7,6 +7,12 @@ export component LiveTab inherits Rectangle {
     callback start-capture();
     callback stop-capture();
     callback export-capture();
+    callback replay-session();
+    callback stop-replay();
+
+    // Mechanic gates telemetry-session replay on; can-viewer leaves it off.
+    in property <bool> show-replay: false;
+    in property <bool> replay-active: false;
 
     in-out property <[string]> interfaces;
     in-out property <int> selected-interface: 0;
@@ -47,6 +53,16 @@ export component LiveTab inherits Rectangle {
                 label: "Status";
                 value: root.capture-status;
                 value-color: root.capturing ? SigmaTheme.accent-green : SigmaTheme.text-dim;
+            }
+            if root.show-replay: ToolbarButton {
+                label: "Replay session…";
+                enabled: !root.replay-active;
+                clicked => { root.replay-session(); }
+            }
+            if root.show-replay: ToolbarButton {
+                label: "Stop replay";
+                enabled: root.replay-active;
+                clicked => { root.stop-replay(); }
             }
             Rectangle { horizontal-stretch: 1; }
             Text { text: root.stats-text; color: SigmaTheme.text-dim; vertical-alignment: center; }

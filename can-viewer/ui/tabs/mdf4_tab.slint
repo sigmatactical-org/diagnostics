@@ -4,9 +4,14 @@ import { FrameRow, SignalRow, ToolbarButton, Cell, HeaderCell, TableHeader, Tabl
 
 export component Mdf4Tab inherits Rectangle {
     callback export-mdf4();
+    callback open-mdf4();
     callback apply-filters();
     callback clear-filters();
     callback frame-selected(int);
+
+    // Mechanic gates these on; can-viewer keeps its defaults (header opens files, plain "Export").
+    in property <bool> show-open-mdf4: false;
+    in property <string> export-label: "Export";
 
     in-out property <string> mdf4-path: "";
     in-out property <string> frame-count: "Loaded 0 / 0 frames";
@@ -25,8 +30,12 @@ export component Mdf4Tab inherits Rectangle {
 
         HorizontalLayout {
             spacing: 8px;
+            if root.show-open-mdf4: ToolbarButton {
+                label: "Open MDF4…";
+                clicked => { root.open-mdf4(); }
+            }
             ToolbarButton {
-                label: "Export";
+                label: root.export-label;
                 enabled: root.frames.length > 0;
                 clicked => { root.export-mdf4(); }
             }

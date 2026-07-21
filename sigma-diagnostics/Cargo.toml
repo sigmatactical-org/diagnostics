@@ -28,6 +28,8 @@ ureq = { workspace = true }
 mdf4-rs = { workspace = true }
 dbc-rs = { workspace = true }
 embedded-can = { workspace = true }
+# Read the SQLite database pulled from the bike (maintenance log, error history).
+rusqlite = { version = "0.32", features = ["bundled"] }
 sigma-racer-telemetry = { git = "https://github.com/sigmatactical-org/sigma-racer-telemetry.git", rev = "572b773" }
 vss-map = { git = "https://github.com/sigmatactical-org/vss-map.git", rev = "1b6dbaf", default-features = false, features = ["yaml", "json"] }
 

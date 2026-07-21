@@ -29,6 +29,7 @@ pub fn run(state: Arc<AppState>) -> Result<(), slint::PlatformError> {
     vehicle.refresh_interfaces();
     vehicle.refresh_settings();
     vehicle.init_ota_labels();
+    vehicle.init_maintenance();
 
     let ai = Rc::new(ai::AiController::new(state.clone(), ui.as_weak()));
     ai::AiController::wire(ai.clone(), &ui);

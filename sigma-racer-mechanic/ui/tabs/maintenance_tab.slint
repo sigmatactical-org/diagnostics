@@ -1,39 +1,163 @@
+import { ListView } from "std-widgets.slint";
 import { SigmaTheme } from "theme.slint";
-import { ToolbarButton, StatusChip } from "widgets/common.slint";
+import { ToolbarButton, StatusChip, Cell, HeaderCell, TableHeader, TableRow, EmptyState } from "widgets/common.slint";
+
+// One audited service item. `severity` drives the status colour:
+// "overdue" | "never" | "due-soon" | "ok" | "unknown".
+export struct MaintenanceRow {
+    name: string,
+    status: string,
+    detail: string,
+    severity: string,
+}
 
 export component MaintenanceTab inherits Rectangle {
+    callback run-audit();
+    callback save-report();
     callback reset-service();
     callback reset-oil();
     callback clear-warning();
 
     in property <bool> connected: false;
-    in property <string> status-text: "Protocol pending with Wingman firmware.";
+    in property <bool> busy: false;
+    in property <bool> audit-ran: false;
+    in property <bool> can-save: false;
+    in property <string> status-text: "Query the updates service and audit the bike against the prescribed schedule.";
+    in property <string> schedule-version: "—";
+    in property <string> bike-version: "—";
+    in property <bool> versions-match: false;
+    in property <string> blocked-reason: "";
+    in property <string> summary: "";
+    in property <string> odometer: "—";
+    in property <[MaintenanceRow]> items;
 
     background: SigmaTheme.background;
 
     VerticalLayout {
         padding: 12px;
         spacing: 10px;
-        alignment: start;
+
         Text {
             text: "Maintenance";
             color: SigmaTheme.text;
             font-weight: 700;
         }
         Text {
-            text: "Service resets require bike-side CAN/UDS routines. Actions below call the shared stub until Wingman defines PDUs.";
+            text: "The updates service owns the maintenance schedule. Auditing fetches the latest schedule, asks the bike which version it runs, and — when they match — compares it against the bike's service log.";
             color: SigmaTheme.text-dim;
             wrap: word-wrap;
             font-size: SigmaTheme.font-size-small;
         }
+
         HorizontalLayout {
-            alignment: start;
+            spacing: 8px;
             StatusChip {
-                label: "Status";
-                value: root.status-text;
-                value-color: SigmaTheme.accent-amber;
+                label: "Latest schedule";
+                value: root.schedule-version;
+                value-color: SigmaTheme.text;
+            }
+            StatusChip {
+                label: "Bike schedule";
+                value: root.bike-version;
+                value-color: root.audit-ran
+                    ? (root.versions-match ? SigmaTheme.accent-green : SigmaTheme.accent-red)
+                    : SigmaTheme.text-dim;
+            }
+            StatusChip {
+                label: "Odometer";
+                value: root.odometer;
+                value-color: SigmaTheme.text-dim;
+            }
+            Rectangle { horizontal-stretch: 1; }
+        }
+
+        HorizontalLayout {
+            spacing: 8px;
+            ToolbarButton {
+                label: root.busy ? "Auditing…" : "Run maintenance audit";
+                enabled: root.connected && !root.busy;
+                clicked => { root.run-audit(); }
+            }
+            ToolbarButton {
+                label: "Save report…";
+                enabled: root.can-save && !root.busy;
+                clicked => { root.save-report(); }
+            }
+            Rectangle { horizontal-stretch: 1; }
+        }
+
+        Text {
+            text: root.status-text;
+            color: SigmaTheme.text-dim;
+            wrap: word-wrap;
+            font-size: SigmaTheme.font-size-small;
+        }
+
+        // Results area: block banner, audit table, or empty state.
+        Rectangle {
+            vertical-stretch: 1;
+            background: SigmaTheme.surface;
+            border-radius: 4px;
+            border-width: 1px;
+            border-color: SigmaTheme.border;
+
+            if root.blocked-reason != "": VerticalLayout {
+                padding: 16px;
+                spacing: 8px;
+                alignment: start;
+                Text {
+                    text: "⚠  Bike needs a schedule update";
+                    color: SigmaTheme.accent-red;
+                    font-weight: 700;
+                }
+                Text {
+                    text: root.blocked-reason;
+                    color: SigmaTheme.text;
+                    wrap: word-wrap;
+                }
+            }
+
+            if root.blocked-reason == "" && !root.audit-ran: EmptyState {
+                message: "No audit yet";
+                hint: "Connect over WiFi, then Run maintenance audit.";
+            }
+
+            if root.blocked-reason == "" && root.audit-ran: VerticalLayout {
+                padding: 4px;
+                spacing: 4px;
+                Text {
+                    text: root.summary;
+                    color: SigmaTheme.text;
+                    font-weight: 600;
+                    horizontal-alignment: left;
+                }
+                TableHeader {
+                    HeaderCell { text: "Service item"; width: 180px; }
+                    HeaderCell { text: "Status"; width: 90px; }
+                    HeaderCell { text: "Detail"; horizontal-stretch: 1; }
+                }
+                ListView {
+                    for row in root.items: TableRow {
+                        hoverable: false;
+                        Cell { text: row.name; width: 180px; color: SigmaTheme.text; }
+                        Cell {
+                            text: row.status;
+                            width: 90px;
+                            color: (row.severity == "overdue" || row.severity == "never")
+                                ? SigmaTheme.accent-red
+                                : (row.severity == "due-soon"
+                                    ? SigmaTheme.accent-amber
+                                    : (row.severity == "ok"
+                                        ? SigmaTheme.accent-green
+                                        : SigmaTheme.text-dim));
+                        }
+                        Cell { text: row.detail; horizontal-stretch: 1; color: SigmaTheme.text-dim; }
+                    }
+                }
             }
         }
+
+        // Secondary: legacy service resets (still protocol-pending on the bike).
         HorizontalLayout {
             spacing: 8px;
             ToolbarButton {

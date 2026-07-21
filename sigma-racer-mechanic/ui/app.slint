@@ -10,16 +10,15 @@ import { FrameRow, SignalRow, LiveMessageRow, LiveSignalRow, LiveFrameRow, LiveE
 
 import { ConnectTab } from "tabs/connect_tab.slint";
 import { DiagnosisTab, VitalRow, AnomalyRow } from "tabs/diagnosis_tab.slint";
-import { MaintenanceTab } from "tabs/maintenance_tab.slint";
+import { MaintenanceTab, MaintenanceRow } from "tabs/maintenance_tab.slint";
 import { SettingsTab, SettingRow } from "tabs/settings_tab.slint";
 import { UpdatesTab } from "tabs/updates_tab.slint";
-import { LogsTab } from "tabs/logs_tab.slint";
 
-export { VitalRow, AnomalyRow, SettingRow }
+export { VitalRow, AnomalyRow, SettingRow, MaintenanceRow }
 
 // Tab indices:
-// 0 Connect, 1 Diagnosis, 2 Maintenance, 3 Settings, 4 Updates, 5 Logs,
-// 6 MDF4, 7 Live, 8 DBC, 9 About
+// 0 Connect, 1 Diagnosis, 2 Maintenance, 3 Settings, 4 Updates,
+// 5 MDF4, 6 Live, 7 DBC, 8 About
 
 export component SigmaRacerMechanic inherits Window {
     title: "Sigma Racer Mechanic";
@@ -73,7 +72,19 @@ export component SigmaRacerMechanic inherits Window {
     callback maintenance-reset-service();
     callback maintenance-reset-oil();
     callback maintenance-clear-warning();
-    in-out property <string> maintenance-status: "Protocol pending with Wingman firmware.";
+    callback maintenance-audit();
+    callback save-maintenance-report();
+    in-out property <string> maintenance-status: "Query the updates service and audit the bike against the prescribed schedule.";
+    in-out property <bool> maintenance-busy: false;
+    in-out property <bool> maintenance-audit-ran: false;
+    in-out property <bool> maintenance-can-save: false;
+    in-out property <string> maintenance-schedule-version: "—";
+    in-out property <string> maintenance-bike-version: "—";
+    in-out property <bool> maintenance-versions-match: false;
+    in-out property <string> maintenance-blocked-reason: "";
+    in-out property <string> maintenance-summary: "";
+    in-out property <string> maintenance-odometer: "—";
+    in-out property <[MaintenanceRow]> maintenance-items;
 
     callback refresh-settings();
     in-out property <string> settings-status: "";
@@ -90,11 +101,8 @@ export component SigmaRacerMechanic inherits Window {
     in-out property <bool> ota-busy: false;
     in-out property <string> ota-status: "";
 
-    callback request-ecu-log();
-    callback open-local-mdf4-from-logs();
     callback replay-session();
     callback stop-replay();
-    in-out property <string> logs-status: "Record WiFi sessions from Connect, replay saved .jsonl files, or import MDF4 for CAN analysis.";
     in-out property <bool> logs-replay-active: false;
 
     // —— Analysis (same surface as can-viewer) ——
@@ -198,7 +206,7 @@ export component SigmaRacerMechanic inherits Window {
     in-out property <[DbcCatalogRow]> dbc-catalog-files;
 
     private property <[string]> tab-labels:
-        ["Connect", "Diagnosis", "Maintenance", "Settings", "Updates", "Logs", "MDF4", "Live", "DBC", "About"];
+        ["Connect", "Diagnosis", "Maintenance", "Settings", "Updates", "MDF4", "Live", "DBC", "About"];
 
     main-layer := Rectangle {
         width: 100%;
@@ -321,6 +329,18 @@ export component SigmaRacerMechanic inherits Window {
                     width: 100%; height: 100%;
                     connected: root.vehicle-connected;
                     status-text: root.maintenance-status;
+                    busy: root.maintenance-busy;
+                    audit-ran: root.maintenance-audit-ran;
+                    can-save: root.maintenance-can-save;
+                    schedule-version: root.maintenance-schedule-version;
+                    bike-version: root.maintenance-bike-version;
+                    versions-match: root.maintenance-versions-match;
+                    blocked-reason: root.maintenance-blocked-reason;
+                    summary: root.maintenance-summary;
+                    odometer: root.maintenance-odometer;
+                    items: root.maintenance-items;
+                    run-audit => { root.maintenance-audit(); }
+                    save-report => { root.save-maintenance-report(); }
                     reset-service => { root.maintenance-reset-service(); }
                     reset-oil => { root.maintenance-reset-oil(); }
                     clear-warning => { root.maintenance-clear-warning(); }
@@ -345,17 +365,11 @@ export component SigmaRacerMechanic inherits Window {
                     check-updates => { root.check-updates(); }
                     download-bundle => { root.download-bundle(); }
                 }
-                if root.active-tab == 5: LogsTab {
+                if root.active-tab == 5: Mdf4Tab {
                     width: 100%; height: 100%;
-                    status-text: root.logs-status;
-                    replay-active: root.logs-replay-active;
-                    replay-session => { root.replay-session(); }
-                    stop-replay => { root.stop-replay(); }
-                    open-local-mdf4 => { root.open-local-mdf4-from-logs(); }
-                    request-ecu-log => { root.request-ecu-log(); }
-                }
-                if root.active-tab == 6: Mdf4Tab {
-                    width: 100%; height: 100%;
+                    show-open-mdf4: true;
+                    export-label: "Export MDF…";
+                    open-mdf4 => { root.open-mdf4(); }
                     mdf4-path <=> root.mdf4-path;
                     frame-count <=> root.mdf4-frame-count;
                     frames <=> root.mdf4-frames;
@@ -369,8 +383,12 @@ export component SigmaRacerMechanic inherits Window {
                     clear-filters => { root.clear-filters(); }
                     frame-selected(index) => { root.frame-selected(index); }
                 }
-                if root.active-tab == 7: LiveTab {
+                if root.active-tab == 6: LiveTab {
                     width: 100%; height: 100%;
+                    show-replay: true;
+                    replay-active: root.logs-replay-active;
+                    replay-session => { root.replay-session(); }
+                    stop-replay => { root.stop-replay(); }
                     interfaces <=> root.live-interfaces;
                     selected-interface <=> root.live-selected-interface;
                     capturing <=> root.live-capturing;
@@ -386,7 +404,7 @@ export component SigmaRacerMechanic inherits Window {
                     stop-capture => { root.stop-capture(); }
                     export-capture => { root.export-capture(); }
                 }
-                if root.active-tab == 8: DbcTab {
+                if root.active-tab == 7: DbcTab {
                     width: 100%; height: 100%;
                     dbc-path <=> root.dbc-path;
                     dirty <=> root.dbc-dirty;
@@ -438,7 +456,7 @@ export component SigmaRacerMechanic inherits Window {
                     refresh-bit-map => { root.refresh-bit-map(); }
                     bit-cell-clicked(index) => { root.bit-cell-clicked(index); }
                 }
-                if root.active-tab == 9: AboutTab {
+                if root.active-tab == 8: AboutTab {
                     width: 100%; height: 100%;
                     app-title: "Mechanic";
                     app-description: "Shop tool over SocketCAN — diagnosis, maintenance, settings, and OTA updates, with embedded MDF4 / Live / DBC analysis.";

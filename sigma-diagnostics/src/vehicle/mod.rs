@@ -21,7 +21,12 @@ pub use ai::{
 pub use diagnosis::{AnomalyRow, DiagnosisSnapshot, VitalSignal};
 pub use logs::{request_log_export, LogExportRequest};
 pub use m7::{load_m7_draft_dbc, M7_DRAFT_DBC, M7_DRAFT_DBC_NAME};
-pub use maintenance::{MaintenanceAction, MaintenanceService, StubMaintenanceService};
+pub use maintenance::{
+    audit, default_records_dir, fetch_latest_schedule, perform_maintenance_audit,
+    read_wingman_db, render_markdown, save_maintenance_record, AuditItem, ErrorRow, ItemStatus,
+    MaintenanceAction, MaintenanceAudit, MaintenanceScheduleConfig, MaintenanceService,
+    SavedRecord, StubMaintenanceService, WingmanData,
+};
 pub use ota::{fetch_channel_latest, ChannelRelease, OtaConfig};
 pub use recording::{default_sessions_dir, new_session_path, TelemetryRecorder, TelemetryReplayer};
 pub use session::{VehicleLinkConfig, VehicleSession, VehicleSessionStatus, DEFAULT_WIFI_PORT};

@@ -4,7 +4,7 @@ use crate::config::SessionConfig;
 use can_viewer::AppState as CanViewerAppState;
 use can_viewer::InitialFiles;
 use parking_lot::Mutex;
-use sigma_diagnostics::VehicleSession;
+use sigma_diagnostics::{MaintenanceAudit, VehicleSession};
 use std::ops::Deref;
 use std::sync::Arc;
 
@@ -14,6 +14,9 @@ pub struct AppState {
     pub analysis: Arc<CanViewerAppState>,
     pub vehicle: VehicleSession,
     pub mechanic_session: Mutex<SessionConfig>,
+    /// Most recent maintenance audit, cached so "Save report" persists exactly
+    /// what the tab shows without re-querying the bike.
+    pub maintenance_audit: Mutex<Option<MaintenanceAudit>>,
 }
 
 impl AppState {
@@ -24,6 +27,7 @@ impl AppState {
             analysis: Arc::new(CanViewerAppState::with_initial_files(initial)),
             vehicle: VehicleSession::new(),
             mechanic_session: Mutex::new(mechanic_session),
+            maintenance_audit: Mutex::new(None),
         }
     }
 }
