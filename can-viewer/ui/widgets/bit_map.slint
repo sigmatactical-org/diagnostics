@@ -63,14 +63,11 @@ component ByteBitStrip inherits VerticalLayout {
 
 /// Occupancy grid: up to 4 byte strips per row (columns), then wrap.
 /// DLC 8 → 2 rows × 4 columns; DLC 4 → 1×4; DLC 3 → 1×3.
-export component SignalBitMap inherits VerticalLayout {
+export component SignalBitMap inherits Rectangle {
     in property <[DbcBitBand]> bands;
     in property <string> summary: "";
     in property <int> dlc: 0;
     callback cell-clicked(int);
-
-    spacing: 4px;
-    alignment: start;
 
     pure function preferred-map-height() -> length {
         if root.bands.length == 0 {
@@ -83,80 +80,91 @@ export component SignalBitMap inherits VerticalLayout {
             + 4px + 14px;
     }
 
-    height: root.preferred-map-height();
+    // Thin frame around the bit analyzer; collapses when there is nothing to
+    // show. The +20px accounts for the inner 10px padding top and bottom.
+    border-width: 1px;
+    border-color: SigmaTheme.border;
+    border-radius: 4px;
     vertical-stretch: 0;
-
-    Text {
-        text: root.summary;
-        color: SigmaTheme.text-dim;
-        font-size: SigmaTheme.font-size-small;
-        height: 14px;
-        overflow: elide;
-    }
+    height: root.bands.length == 0 ? 0px : root.preferred-map-height() + 20px;
 
     VerticalLayout {
-        spacing: 8px;
-        for band in root.bands: HorizontalLayout {
-            spacing: 12px;
-            alignment: start;
-            for byte-row in band.bytes: ByteBitStrip {
-                byte-data: byte-row;
-                cell-clicked(sig-idx) => { root.cell-clicked(sig-idx); }
-            }
-        }
-    }
-
-    HorizontalLayout {
-        spacing: 10px;
+        padding: 10px;
+        spacing: 4px;
         alignment: start;
-        height: 14px;
-        HorizontalLayout {
-            spacing: 4px;
-            Rectangle {
-                width: 10px;
-                height: 10px;
-                background: SigmaTheme.surface;
-                border-width: 1px;
-                border-color: SigmaTheme.border;
-                border-radius: 2px;
-            }
-            Text { text: "free"; color: SigmaTheme.text-dim; font-size: 9px; vertical-alignment: center; }
+
+        Text {
+            text: root.summary;
+            color: SigmaTheme.text-dim;
+            font-size: SigmaTheme.font-size-small;
+            height: 14px;
+            overflow: elide;
         }
-        HorizontalLayout {
-            spacing: 4px;
-            Rectangle {
-                width: 10px;
-                height: 10px;
-                background: SigmaTheme.surface-raised;
-                border-width: 1px;
-                border-color: SigmaTheme.border;
-                border-radius: 2px;
+
+        VerticalLayout {
+            spacing: 8px;
+            for band in root.bands: HorizontalLayout {
+                spacing: 12px;
+                alignment: start;
+                for byte-row in band.bytes: ByteBitStrip {
+                    byte-data: byte-row;
+                    cell-clicked(sig-idx) => { root.cell-clicked(sig-idx); }
+                }
             }
-            Text { text: "used"; color: SigmaTheme.text-dim; font-size: 9px; vertical-alignment: center; }
         }
+
         HorizontalLayout {
-            spacing: 4px;
-            Rectangle {
-                width: 10px;
-                height: 10px;
-                background: SigmaTheme.accent.transparentize(0.45);
-                border-width: 1px;
-                border-color: SigmaTheme.accent;
-                border-radius: 2px;
+            spacing: 10px;
+            alignment: start;
+            height: 14px;
+            HorizontalLayout {
+                spacing: 4px;
+                Rectangle {
+                    width: 10px;
+                    height: 10px;
+                    background: SigmaTheme.surface;
+                    border-width: 1px;
+                    border-color: SigmaTheme.border;
+                    border-radius: 2px;
+                }
+                Text { text: "free"; color: SigmaTheme.text-dim; font-size: 9px; vertical-alignment: center; }
             }
-            Text { text: "selected"; color: SigmaTheme.text-dim; font-size: 9px; vertical-alignment: center; }
-        }
-        HorizontalLayout {
-            spacing: 4px;
-            Rectangle {
-                width: 10px;
-                height: 10px;
-                background: SigmaTheme.accent-red.transparentize(0.55);
-                border-width: 1px;
-                border-color: SigmaTheme.accent-red;
-                border-radius: 2px;
+            HorizontalLayout {
+                spacing: 4px;
+                Rectangle {
+                    width: 10px;
+                    height: 10px;
+                    background: SigmaTheme.surface-raised;
+                    border-width: 1px;
+                    border-color: SigmaTheme.border;
+                    border-radius: 2px;
+                }
+                Text { text: "used"; color: SigmaTheme.text-dim; font-size: 9px; vertical-alignment: center; }
             }
-            Text { text: "conflict"; color: SigmaTheme.text-dim; font-size: 9px; vertical-alignment: center; }
+            HorizontalLayout {
+                spacing: 4px;
+                Rectangle {
+                    width: 10px;
+                    height: 10px;
+                    background: SigmaTheme.accent.transparentize(0.45);
+                    border-width: 1px;
+                    border-color: SigmaTheme.accent;
+                    border-radius: 2px;
+                }
+                Text { text: "selected"; color: SigmaTheme.text-dim; font-size: 9px; vertical-alignment: center; }
+            }
+            HorizontalLayout {
+                spacing: 4px;
+                Rectangle {
+                    width: 10px;
+                    height: 10px;
+                    background: SigmaTheme.accent-red.transparentize(0.55);
+                    border-width: 1px;
+                    border-color: SigmaTheme.accent-red;
+                    border-radius: 2px;
+                }
+                Text { text: "conflict"; color: SigmaTheme.text-dim; font-size: 9px; vertical-alignment: center; }
+            }
         }
     }
 }
